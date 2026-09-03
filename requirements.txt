@@ -1,0 +1,4 @@
+flet
+flet-webview
+paho-mqtt
+flet-audio

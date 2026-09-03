@@ -1,0 +1,41 @@
+# ==== Python ====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+*.egg
+
+# Entornos virtuales (NUNCA se suben)
+.venv/
+venv/
+env/
+
+# ==== Flet / build ====
+# Salida de 'flet build' (APK/AAB/web/escritorio) — se regenera, no se versiona
+build/
+.flet/
+*.apk
+*.aab
+
+# ==== Entorno / secretos ====
+.env
+*.local
+
+# ==== IDE / editor ====
+.vscode/
+.idea/
+*.swp
+
+# ==== Sistema operativo ====
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+# macOS
+.DS_Store
+
+# ==== Logs / temporales ====
+*.log
+.pytest_cache/
+.mypy_cache/

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  video { width: 100%; height: 100%; object-fit: contain; }
+  /* Overlay de estado para diagnosticar dentro del WebView (sin consola) */
+  #estado {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    padding: 8px 10px; font: 13px system-ui, sans-serif;
+    color: #9fe6c9; background: rgba(0,0,0,0.55); white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<video id="v" autoplay muted playsinline></video>
+<div id="estado">iniciando…</div>
+<script>
+const p = new URLSearchParams(location.search);
+const base = p.get('base') || 'http://100.110.157.112:8889';
+const cama = p.get('cama') || 'cama-09';
+const video = document.getElementById('v');
+const est = document.getElementById('estado');
+function log(m) { est.textContent = m; }
+
+function reproducir() {
+  // El WebView de Android suele necesitar play() explícito; si el autoplay
+  // está bloqueado, cae al catch y pedimos un toque (gesto del usuario).
+  video.play()
+    .then(() => log('reproduciendo ✓'))
+    .catch(err => {
+      log('toca la pantalla para reproducir');
+      document.body.addEventListener('click', () => {
+        video.play().then(() => log('reproduciendo ✓'))
+          .catch(e => log('play falló: ' + e.message));
+      }, { once: true });
+    });
+}
+
+async function connect() {
+  try {
+    log('conectando a ' + base + '/' + cama + ' …');
+    const pc = new RTCPeerConnection();
+    pc.ontrack = e => {
+      if (e.streams[0]) {
+        video.srcObject = e.streams[0];
+        log('stream recibido, reproduciendo…');
+        reproducir();
+      }
+    };
+    pc.addTransceiver('video', { direction: 'recvonly' });
+
+    await pc.setLocalDescription(await pc.createOffer());
+    await new Promise(r => {
+      if (pc.iceGatheringState === 'complete') return r();
+      pc.addEventListener('icegatheringstatechange', () => {
+        if (pc.iceGatheringState === 'complete') r();
+      });
+      setTimeout(r, 2000);
+    });
+
+    log('enviando WHEP…');
+    const resp = await fetch(`${base}/${cama}/whep`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/sdp' },
+      body: pc.localDescription.sdp
+    });
+    log('WHEP status: ' + resp.status);
+    if (!resp.ok) { setTimeout(connect, 3000); return; }
+
+    await pc.setRemoteDescription({ type: 'answer', sdp: await resp.text() });
+
+    pc.onconnectionstatechange = () => {
+      log('conexión WebRTC: ' + pc.connectionState);
+      if (['failed', 'disconnected'].includes(pc.connectionState)) {
+        pc.close();
+        setTimeout(connect, 3000);
+      }
+    };
+  } catch (err) {
+    log('ERROR: ' + err.message);
+    setTimeout(connect, 3000);
+  }
+}
+
+connect();
+</script>
+</body>
+</html>

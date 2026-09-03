@@ -1,0 +1,26 @@
+[project]
+name = "monitoreo-pediatria"
+version = "1.0.3"
+description = "Dashboard de monitoreo pediatrico en tiempo real"
+requires-python = ">=3.9"
+
+# Dependencias que 'flet build' empaqueta DENTRO del APK.
+# OJO: el build las toma de aquí, NO de requirements.txt. Si una libreria
+# no esta en esta lista, no viaja al telefono (ej: flet_audio faltaba).
+dependencies = [
+    "flet",
+    "flet-webview",
+    "flet-audio",
+    "paho-mqtt",
+]
+
+[tool.flet]
+# Identidad fija de la app → nombre de paquete estable (com.chuy.monitoreo_pediatria).
+# Con esto, cada build futuro ACTUALIZA la misma app en vez de instalar una nueva.
+org = "com.chuy"
+product = "Monitoreo Pediatria"
+
+[tool.flet.android.manifest_application]
+# Permite trafico HTTP sin cifrar (http://) en Android — necesario para que
+# el WebView cargue el player.html y el WHEP por http dentro de Tailscale.
+usesCleartextTraffic = "true"
