@@ -1,6 +1,6 @@
 [project]
 name = "monitoreo-pediatria"
-version = "1.0.3"
+version = "1.0.4"
 description = "Dashboard de monitoreo pediatrico en tiempo real"
 requires-python = ">=3.9"
 
@@ -11,6 +11,7 @@ dependencies = [
     "flet",
     "flet-webview",
     "flet-audio",
+    "flet-android-notifications==0.7.3",  # fijada: compatible con Python 3.10 del venv
     "paho-mqtt",
 ]
 
@@ -19,6 +20,10 @@ dependencies = [
 # Con esto, cada build futuro ACTUALIZA la misma app en vez de instalar una nueva.
 org = "com.chuy"
 product = "Monitoreo Pediatria"
+
+[tool.flet.android.permission]
+# Fase 1 de notificaciones: permiso para publicar notificaciones (Android 13+).
+"android.permission.POST_NOTIFICATIONS" = true
 
 [tool.flet.android.manifest_application]
 # Permite trafico HTTP sin cifrar (http://) en Android — necesario para que

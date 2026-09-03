@@ -4,6 +4,7 @@ from vistas.dashboard import Dashboard
 from vistas.header import Header
 from servicios.mqtt import ClienteMQTT
 from flet_audio import Audio
+from flet_android_notifications import FletAndroidNotifications
 
 class App(ft.Container):
     def __init__(self):
@@ -57,6 +58,9 @@ class App(ft.Container):
         #creamos una variable que haga referencia al control de vibración
         self.vibracion = ft.HapticFeedback()
 
+        #creamos una variable que haga referencia a las notificaciones
+        self.notificaciones = FletAndroidNotifications()
+
     def _al_estado(self,conectado):
         self.page.loop.call_soon_threadsafe(self.header.actualizar_estado_mqtt, conectado)
 
@@ -65,6 +69,8 @@ class App(ft.Container):
         self.conexion.iniciar()
         self.page.services.append(self.audio_alerta)
         self.page.services.append(self.vibracion)
+        self.page.services.append(self.notificaciones)
+        self.page.run_task(self.notificaciones.request_permissions)
 
     def _al_cambiar_camas(self,n):
         self.page.loop.call_soon_threadsafe(self.header.actualizar_contador_camas, n)
@@ -75,6 +81,7 @@ class App(ft.Container):
             if cama_id not in self.camas_en_alerta:
                     self.page.run_task(self.audio_alerta.play)
                     self.page.run_task(self._vibrar_alerta)
+                    self.page.run_task(self._notificar_alerta,cama_id)
             self.camas_en_alerta.add(cama_id)
         else:
             self.camas_en_alerta.discard(cama_id)
@@ -103,6 +110,9 @@ class App(ft.Container):
         await asyncio.sleep(0.15)
         await self.vibracion.heavy_impact()
         await asyncio.sleep(0.15)
+
+    async def _notificar_alerta(self,cama_id):
+        await self.notificaciones.show_notification(notification_id=int(cama_id.split("-")[1]), title="⚠️ Alerta", body=f"{cama_id} con signos anormales")
 
     async def _pulso_banner(self):
         # latido del ícono: alterna la opacidad mientras el banner esté visible
