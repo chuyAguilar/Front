@@ -39,5 +39,5 @@ class ClienteMQTT:
         client.on_message = al_mensaje
         client.on_disconnect = al_desconectar
         #ruta real
-        client.connect_async("100.110.157.112", 1883)
+        client.connect_async("100.110.157.112", 1883,keepalive=15)
         client.loop_start()

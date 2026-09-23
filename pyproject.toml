@@ -1,6 +1,6 @@
 [project]
 name = "monitoreo-pediatria"
-version = "1.0.4"
+version = "1.0.5"
 description = "Dashboard de monitoreo pediatrico en tiempo real"
 requires-python = ">=3.9"
 
@@ -24,6 +24,9 @@ product = "Monitoreo Pediatria"
 [tool.flet.android.permission]
 # Fase 1 de notificaciones: permiso para publicar notificaciones (Android 13+).
 "android.permission.POST_NOTIFICATIONS" = true
+# Fase 2: foreground service para mantener viva la app en segundo plano.
+"android.permission.FOREGROUND_SERVICE" = true
+"android.permission.FOREGROUND_SERVICE_SPECIAL_USE" = true
 
 [tool.flet.android.manifest_application]
 # Permite trafico HTTP sin cifrar (http://) en Android — necesario para que

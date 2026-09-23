@@ -30,7 +30,7 @@ class Dashboard(ft.Row):
         if cama_id not in self.tarjetas:
             print("camas descubiertas: ", cama_id)
             nueva = BedCard(cama_id,self._al_alerta)
-            # si ya sabiamos el estado de esta cama (llego antes que sus vitales), aplicalo
+            # si ya sabiamos el estado de esta cama (llego antes que sus vitales)
             if cama_id in self.estados:
                 nueva.actualizar_estado(self.estados[cama_id])
             self.tarjetas[cama_id] = nueva

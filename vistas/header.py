@@ -20,8 +20,8 @@ class Header(ft.Container):
         self.subtitulo = ft.Text("Ortometa 3d", color=ft.Colors.WHITE, weight=ft.FontWeight.NORMAL)
 
         # mqtt
-        self.estado = ft.Text("MQTT: ..", color=ft.Colors.WHITE)
-        self.punto_estado = ft.Container(width=8, height=8, border_radius=4, bgcolor="#00e676")
+        self.estado = ft.Text("Conectando MQTT", color=ft.Colors.WHITE)
+        self.punto_estado = ft.Container(width=8, height=8, border_radius=4, bgcolor="#546e7a")
         self.pastilla = ft.Container(content=ft.Row([self.punto_estado, self.estado], spacing=6), bgcolor="#12241d", border_radius=20, padding=10)
 
         #izquierdo
@@ -33,10 +33,17 @@ class Header(ft.Container):
         self.nCamas = ft.Text("0 camas")
         self.derecho = ft.Row([self.reloj,self.nCamas,self.pastilla],spacing=16)
 
-        #header
-        # wrap=True: en pantalla angosta (movil) el grupo derecho baja a otra
-        # linea en vez de cortarse fuera de la pantalla
-        self.content = ft.Row([self.izquierdo, self.derecho], alignment = ft.MainAxisAlignment.SPACE_BETWEEN, wrap=True, run_spacing=8)
+        #header: una sola fila con los dos grupos. El layout se ajusta segun el
+        # ancho real de la ventana en _aplicar_layout() (llamado desde did_mount
+        # y en cada resize):
+        #   ancho  -> wrap=False: space-between empuja el derecho a la orilla derecha.
+        #   angosto-> wrap=True: el grupo derecho baja a otra linea (movil).
+        self.content = ft.Row(
+            [self.izquierdo, self.derecho],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            run_spacing=8,
+        )
 
     def actualizar_estado_mqtt(self, conectado):
         if conectado == True:
@@ -54,6 +61,27 @@ class Header(ft.Container):
 
     def did_mount(self):
         self.page.run_task(self.correr_reloj)
+        # layout responsivo: ajusta al montar y en cada cambio de tamaño
+        self.page.on_resize = self._al_redimensionar
+        self._aplicar_layout()
+
+    def _al_redimensionar(self, e):
+        self._aplicar_layout()
+
+    def _aplicar_layout(self):
+        # angosto (<600px): wrap para que el derecho baje a otra linea.
+        # ancho: sin wrap para que space-between lo empuje a la derecha.
+        angosto = bool(self.page.width and self.page.width < 600)
+        self.content.wrap = angosto
+        # angosto: cada grupo apilado va CENTRADO (se ve limpio en movil).
+        # ancho: space-between (izquierdo a la izq, derecho a la der).
+        self.content.alignment = (
+            ft.MainAxisAlignment.CENTER if angosto else ft.MainAxisAlignment.SPACE_BETWEEN
+        )
+        try:
+            self.content.update()
+        except Exception:
+            pass
 
     async def correr_reloj(self):
         while True:
