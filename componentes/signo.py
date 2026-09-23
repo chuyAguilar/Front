@@ -43,6 +43,18 @@ class Signo(ft.Container):
         except:
              print("error en actualizar valor en signo.py")
 
+    def sin_dato(self):
+        # Sin dato ACTUAL ("Sin conexión" con el edge, ADR-024, o vital vieja):
+        # "--" en gris SIN tocar la alerta — las alertas activas quedan
+        # congeladas, ni se borran ni se re-evalúan. Silencioso si la tarjeta
+        # aún no está montada.
+        self.valor_texto.value = "--"
+        self.valor_texto.color = "#3d5a73"
+        try:
+            self.valor_texto.update()
+        except Exception:
+            pass
+
     def alerta(self, activa):
          
         self.bgcolor = "#3a1616" if activa else None

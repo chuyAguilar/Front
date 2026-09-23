@@ -2,6 +2,12 @@ import flet as ft
 from componentes.signo import Signo
 from flet_webview import WebView, JavaScriptMode
 from datos.perfiles import PERFILES, fuera_de_rango
+from datos.conexion import SIN_CONEXION
+
+# Colores del punto de estado de la tarjeta
+VERDE_ONLINE = "#00e676"
+GRIS_OFFLINE = "#546e7a"
+AMBAR_SIN_CONEXION = "#ffb300"
 
 class BedCard(ft.Container):
     def __init__(self, cama_id, al_alerta):
@@ -49,12 +55,20 @@ class BedCard(ft.Container):
         #flag por si está alerta activa
         self.al_alerta = al_alerta
 
+        #"Sin conexión" con el edge (ADR-024): mientras dure, las vitales que
+        #lleguen NO se pintan ni se evalúan (serían viejas) y las alertas
+        #activas quedan congeladas.
+        self.sin_conexion = False
+
 
         #Header de card
-        self.punto_estado = ft.Container(width=9,height=9,border_radius=5,bgcolor="#00e676")
+        #nace GRIS: verde solo cuando se sabe que la cama está online
+        self.punto_estado = ft.Container(width=9,height=9,border_radius=5,bgcolor=GRIS_OFFLINE)
+        self.etiqueta_estado = ft.Text("Sin conexión", size=11, color=AMBAR_SIN_CONEXION, visible=False)
         self.header = ft.Container(content=ft.Row([
             ft.Text(self.cama_id,),
-            self.punto_estado
+            self.punto_estado,
+            self.etiqueta_estado
         ],alignment=ft.MainAxisAlignment.CENTER ),bgcolor = "#0f1e30",padding=10,border= ft.Border(bottom=ft.BorderSide(1,"#1a2d45")))
 
         #signos creados con su componente
@@ -144,6 +158,10 @@ class BedCard(ft.Container):
 
 
     def actualizar_valor(self, signo, valor):
+        #sin conexión con el edge: nada se pinta ni se evalúa (alertas congeladas)
+        if self.sin_conexion:
+            return
+
         #actualiza el valor con el valor de signo
         self.signos[signo].actualizar(valor)
         #guardamos cual es el ultimo valor
@@ -180,13 +198,36 @@ class BedCard(ft.Container):
             self.al_alerta(self.cama_id, hay_alerta)
 
 
-    def actualizar_estado(self, estado):
-        # verde si la cama está online, gris si offline
-        self.punto_estado.bgcolor = "#00e676" if estado == "online" else "#546e7a"
-        try:
-            self.punto_estado.update()
-        except Exception:
-            pass
+    def sin_datos_recientes(self):
+        # sin dato ACTUAL (vital vieja o sin conexión): "--" gris y se olvidan
+        # los últimos valores (si no, aplicar_perfil los volvería a pintar como
+        # actuales). Las alertas NO se tocan: quedan congeladas.
+        for s in self.signos.values():
+            s.sin_dato()
+        self.ultimos_valores.clear()
+
+    def aplicar_estado(self, mostrado):
+        # mostrado (derivado en datos/conexion.py): "sin_conexion", "online",
+        # "offline" o None (sin estado conocido).
+        #   sin conexión -> punto ámbar + etiqueta; valores "--" gris; alertas
+        #                   congeladas (ni se borran ni se re-evalúan)
+        #   online       -> punto verde
+        #   offline, desconocido o cualquier otro valor -> punto gris (falla
+        #                   CERRADO: el verde solo se gana con "online")
+        self.sin_conexion = (mostrado == SIN_CONEXION)
+        if self.sin_conexion:
+            self.punto_estado.bgcolor = AMBAR_SIN_CONEXION
+            self.sin_datos_recientes()
+        elif mostrado == "online":
+            self.punto_estado.bgcolor = VERDE_ONLINE
+        else:
+            self.punto_estado.bgcolor = GRIS_OFFLINE
+        self.etiqueta_estado.visible = self.sin_conexion
+        for control in (self.punto_estado, self.etiqueta_estado):
+            try:
+                control.update()
+            except Exception:
+                pass
         
 
     # def actualizar_fc(self, nuevo_valor):

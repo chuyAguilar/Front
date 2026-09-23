@@ -1,6 +1,7 @@
 import flet as ft
 from datetime import datetime
 import asyncio
+from datos.version import VERSION_APP
 
 
 class Header(ft.Container):
@@ -17,7 +18,8 @@ class Header(ft.Container):
         # titulo
         self.titulo = ft.Text("monitoreo pediatria by el chuy", color=ft.Colors.WHITE, weight=ft.FontWeight.BOLD)
         #subtitulo
-        self.subtitulo = ft.Text("Ortometa 3d", color=ft.Colors.WHITE, weight=ft.FontWeight.NORMAL)
+        #la versión va visible para verificar cada teléfono antes de desplegar
+        self.subtitulo = ft.Text(f"Ortometa 3d · v{VERSION_APP}", color=ft.Colors.WHITE, weight=ft.FontWeight.NORMAL)
 
         # mqtt
         self.estado = ft.Text("Conectando MQTT", color=ft.Colors.WHITE)

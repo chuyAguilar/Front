@@ -71,7 +71,7 @@ class App(ft.Container):
         self.page.loop.call_soon_threadsafe(self.header.actualizar_estado_mqtt, conectado)
 
     def did_mount(self):
-        self.conexion = ClienteMQTT(self.dashboard.al_vitales,self._al_estado,self.dashboard.al_estado_cama)
+        self.conexion = ClienteMQTT(self.dashboard.al_vitales,self._al_estado,self.dashboard.al_estado_cama,self.dashboard.al_enlace_edge)
         self.conexion.iniciar()
         self.page.services.append(self.audio_alerta)
         self.page.services.append(self.vibracion)
