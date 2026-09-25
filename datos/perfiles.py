@@ -23,8 +23,9 @@ PERFILES = {
 }
 
 def fuera_de_rango(valor,rango):
+    # sin lectura = "no se evalúa" (None), NUNCA "normal" (ADR-025)
     if valor is None:
-        return False
+        return None
 
     minimo,maximo = rango
     return valor < minimo or valor > maximo

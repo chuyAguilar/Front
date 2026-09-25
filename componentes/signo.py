@@ -33,7 +33,8 @@ class Signo(ft.Container):
     def actualizar(self,valor):
         try:
             if valor is None:
-                # sin lectura (cama offline): "--" en gris, sin inventar un número
+                # sin lectura (null: ilegible, dudosa o ausente — ADR-025): "--"
+                # en gris, sin inventar un número; la alerta no se toca
                 self.valor_texto.value = "--"
                 self.valor_texto.color = "#3d5a73"
             else:

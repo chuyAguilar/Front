@@ -174,9 +174,12 @@ class BedCard(ft.Container):
         self.ultimos_valores[signo] = valor
 
         #calcular si el signo cruzó su rango del perfil.
-        #fuera = None significa "este signo no se evalúa" (fp sin umbral, o pni sin lectura)
+        #fuera = None significa "este signo no se evalúa" (fp sin umbral, o sin
+        #lectura). Una lectura null (ilegible, dudosa o ausente) JAMÁS es normal
+        #(ADR-025): no se evalúa y la alerta de ese signo queda exactamente como
+        #estaba — ni se apaga ni se enciende, ni se reporta al banner.
         fuera = None
-        if signo in self.perfil:
+        if valor is not None and signo in self.perfil:
             #signos numéricos simples (fc, spo2, fr, temp)
             fuera = fuera_de_rango(valor, self.perfil[signo])
         elif signo == "pni" and valor is not None:

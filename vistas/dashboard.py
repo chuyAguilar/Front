@@ -1,4 +1,5 @@
 import asyncio
+import math
 
 import flet as ft
 from componentes.bed_card import BedCard
@@ -16,6 +17,19 @@ def _log(texto):
         print(texto)
     except Exception:
         pass
+
+
+def _numero(valor):
+    # una lectura válida es un número finito; cualquier otra cosa (null, texto,
+    # booleano, NaN, infinito) es "malformado = null": "--" y NO se evalúa (ADR-025)
+    if isinstance(valor, bool) or not isinstance(valor, (int, float)):
+        return None
+    return valor if math.isfinite(valor) else None
+
+
+def _entero(valor):
+    # los componentes de la PNI son enteros en el contrato (sis/dia)
+    return valor if isinstance(valor, int) and not isinstance(valor, bool) else None
 
 
 class Dashboard(ft.Row):
@@ -159,18 +173,18 @@ class Dashboard(ft.Row):
         if clase != CUENTA:
             return
 
-        #extraer valores (un signo ausente o malformado se muestra "--")
+        #extraer valores: un signo ausente o malformado (también un "valor" que no
+        #es un número finito) es null — se muestra "--" y no se evalúa (ADR-025)
         valores = []
         for titulo in ["fc", "spo2", "fp", "fr", "temp"]:
             signo = signos.get(titulo)
-            valores.append((titulo, signo.get("valor") if isinstance(signo, dict) else None))
+            valores.append((titulo, _numero(signo.get("valor")) if isinstance(signo, dict) else None))
 
-        #ver si signos tiene pni
+        #ver si signos tiene pni (completa y entera, o null)
         pni = signos.get("pni")
-        if isinstance(pni, dict) and pni.get("sis") is not None and pni.get("dia") is not None:
-            valores.append(("pni", f"{pni['sis']}/{pni['dia']}"))
-        else:
-            valores.append(("pni", None))
+        sis = _entero(pni.get("sis")) if isinstance(pni, dict) else None
+        dia = _entero(pni.get("dia")) if isinstance(pni, dict) else None
+        valores.append(("pni", f"{sis}/{dia}" if sis is not None and dia is not None else None))
 
         # cada signo en su propio try: uno roto no impide pintar los demás
         for titulo, valor in valores:
