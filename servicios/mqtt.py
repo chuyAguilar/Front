@@ -44,7 +44,7 @@ def _texto_o_none(valor):
     return valor if isinstance(valor, str) and valor else None
 
 
-def despachar(topic, payload, al_vitales, al_estado_cama, al_enlace_edge):
+def despachar(topic, payload, al_vitales, al_estado_cama, al_enlace_edge, retenido=False):
     """Enruta un mensaje por su TOPIC y llama al callback que corresponde.
 
     Lanza ante un payload inválido: quien llama (_al_mensaje) lo atrapa y lo
@@ -74,9 +74,11 @@ def despachar(topic, payload, al_vitales, al_estado_cama, al_enlace_edge):
             raise ValueError("vitales sin 'signos' válido")
         cama_id = _texto_o_none(datos.get("cama_id")) or partes[2]
         # device_id es opcional: sin él las vitales se muestran igual. El ts
-        # viaja crudo: el dashboard decide si la vital es actual.
+        # viaja crudo y el flag retain también: el dashboard decide si la
+        # vital es actual y si es una re-entrega (retain=1 no reinicia el
+        # timeout de datos).
         al_vitales(cama_id, signos, _texto_o_none(datos.get("device_id")),
-                   datos.get("ts"))
+                   datos.get("ts"), retenido)
 
     elif len(partes) == 3 and partes[0] == "monitoreo" and partes[1] == "estado":
         datos = _objeto_json(payload)
@@ -131,7 +133,8 @@ class ClienteMQTT:
     def _al_mensaje(self, client, userdata, msg):
         try:
             despachar(msg.topic, msg.payload, self.al_vitales,
-                      self.al_estado_cama, self.al_enlace_edge)
+                      self.al_estado_cama, self.al_enlace_edge,
+                      bool(getattr(msg, "retain", False)))
         except Exception as e:
             try:
                 print(f"[mqtt] mensaje descartado en {msg.topic}: {e}")

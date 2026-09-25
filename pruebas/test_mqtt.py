@@ -25,8 +25,8 @@ class Registro:
         self.enlaces = []
         self.conexion = []
 
-    def al_vitales(self, cama_id, signos, device_id, ts):
-        self.vitales.append((cama_id, signos, device_id, ts))
+    def al_vitales(self, cama_id, signos, device_id, ts, retenido):
+        self.vitales.append((cama_id, signos, device_id, ts, retenido))
 
     def al_estado_cama(self, cama_id, estado):
         self.estados.append((cama_id, estado))
@@ -75,7 +75,17 @@ def test_enlace_cero_y_desconocidos():
 def test_vitales_con_device_id_y_ts():
     r = Registro()
     _cliente(r)._al_mensaje(None, None, Msg("monitoreo/vitales/cama-09", _json(VITALES)))
-    assert r.vitales == [("cama-09", VITALES["signos"], "jetson-01", "2026-09-22T10:00:00Z")]
+    assert r.vitales == [("cama-09", VITALES["signos"], "jetson-01", "2026-09-22T10:00:00Z", False)]
+
+
+def test_el_flag_retain_llega_al_dashboard():
+    # F1.2: una vital retenida (re-entregada al (re)suscribirse) no debe
+    # reiniciar el timeout de datos: el flag viaja hasta el dashboard
+    msg = Msg("monitoreo/vitales/cama-09", _json(VITALES))
+    msg.retain = 1
+    r = Registro()
+    _cliente(r)._al_mensaje(None, None, msg)
+    assert r.vitales == [("cama-09", VITALES["signos"], "jetson-01", "2026-09-22T10:00:00Z", True)]
 
 
 def test_vitales_sin_device_id_se_muestran_igual():
@@ -83,7 +93,7 @@ def test_vitales_sin_device_id_se_muestran_igual():
     sin_device = {k: v for k, v in VITALES.items() if k != "device_id"}
     r = Registro()
     _cliente(r)._al_mensaje(None, None, Msg("monitoreo/vitales/cama-09", _json(sin_device)))
-    assert r.vitales == [("cama-09", VITALES["signos"], None, "2026-09-22T10:00:00Z")]
+    assert r.vitales == [("cama-09", VITALES["signos"], None, "2026-09-22T10:00:00Z", False)]
 
 
 def test_vitales_sin_ts_llegan_igual_y_el_dashboard_decide():
@@ -92,7 +102,7 @@ def test_vitales_sin_ts_llegan_igual_y_el_dashboard_decide():
     sin_ts = {k: v for k, v in VITALES.items() if k != "ts"}
     r = Registro()
     _cliente(r)._al_mensaje(None, None, Msg("monitoreo/vitales/cama-09", _json(sin_ts)))
-    assert r.vitales == [("cama-09", VITALES["signos"], "jetson-01", None)]
+    assert r.vitales == [("cama-09", VITALES["signos"], "jetson-01", None, False)]
 
 
 def test_device_id_no_texto_se_trata_como_ausente():

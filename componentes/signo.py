@@ -44,7 +44,8 @@ class Signo(ft.Container):
              print("error en actualizar valor en signo.py")
 
     def sin_dato(self):
-        # Sin dato ACTUAL ("Sin conexión" con el edge, ADR-024, o vital vieja):
+        # Sin dato ACTUAL ("Sin conexión" con el edge, ADR-024; "Sin datos" por
+        # timeout, F1.2; o vital vieja):
         # "--" en gris SIN tocar la alerta — las alertas activas quedan
         # congeladas, ni se borran ni se re-evalúan. Silencioso si la tarjeta
         # aún no está montada.

@@ -2,12 +2,15 @@ import flet as ft
 from componentes.signo import Signo
 from flet_webview import WebView, JavaScriptMode
 from datos.perfiles import PERFILES, fuera_de_rango
-from datos.conexion import SIN_CONEXION
+from datos.conexion import SIN_CONEXION, SIN_DATOS
 
 # Colores del punto de estado de la tarjeta
 VERDE_ONLINE = "#00e676"
 GRIS_OFFLINE = "#546e7a"
 AMBAR_SIN_CONEXION = "#ffb300"
+# gris más claro para el TEXTO "Sin datos": el del punto no se lee a 11 px
+# sobre el fondo del header
+GRIS_SIN_DATOS = "#90a4ae"
 
 class BedCard(ft.Container):
     def __init__(self, cama_id, al_alerta):
@@ -55,10 +58,13 @@ class BedCard(ft.Container):
         #flag por si está alerta activa
         self.al_alerta = al_alerta
 
-        #"Sin conexión" con el edge (ADR-024): mientras dure, las vitales que
-        #lleguen NO se pintan ni se evalúan (serían viejas) y las alertas
-        #activas quedan congeladas.
-        self.sin_conexion = False
+        #"Sin conexión" con el edge o "Sin datos" (timeout, F1.2): mientras
+        #dure, las vitales que lleguen NO se pintan ni se evalúan y las
+        #alertas activas quedan congeladas.
+        self.sin_conexion = False   # solo "Sin conexión"
+        self.congelada = False      # "Sin conexión" o "Sin datos"
+        # último estado aplicado (el timer solo re-aplica si cambia)
+        self.mostrado = None
 
 
         #Header de card
@@ -158,8 +164,8 @@ class BedCard(ft.Container):
 
 
     def actualizar_valor(self, signo, valor):
-        #sin conexión con el edge: nada se pinta ni se evalúa (alertas congeladas)
-        if self.sin_conexion:
+        #sin conexión o sin datos: nada se pinta ni se evalúa (alertas congeladas)
+        if self.congelada:
             return
 
         #actualiza el valor con el valor de signo
@@ -198,31 +204,43 @@ class BedCard(ft.Container):
             self.al_alerta(self.cama_id, hay_alerta)
 
 
-    def sin_datos_recientes(self):
-        # sin dato ACTUAL (vital vieja o sin conexión): "--" gris y se olvidan
-        # los últimos valores (si no, aplicar_perfil los volvería a pintar como
-        # actuales). Las alertas NO se tocan: quedan congeladas.
+    def borrar_valores(self):
+        # sin dato ACTUAL (vital vieja, sin conexión o sin datos): "--" gris y
+        # se olvidan los últimos valores (si no, aplicar_perfil los volvería a
+        # pintar como actuales). Las alertas NO se tocan: quedan congeladas.
         for s in self.signos.values():
             s.sin_dato()
         self.ultimos_valores.clear()
 
     def aplicar_estado(self, mostrado):
-        # mostrado (derivado en datos/conexion.py): "sin_conexion", "online",
-        # "offline" o None (sin estado conocido).
-        #   sin conexión -> punto ámbar + etiqueta; valores "--" gris; alertas
-        #                   congeladas (ni se borran ni se re-evalúan)
+        # mostrado (derivado en datos/conexion.py, mostrado_vigente):
+        #   sin conexión -> punto ámbar + etiqueta ámbar; valores "--" gris;
+        #                   alertas congeladas (ni se borran ni se re-evalúan)
+        #   sin datos    -> punto gris + etiqueta gris; valores "--" gris;
+        #                   alertas congeladas
         #   online       -> punto verde
         #   offline, desconocido o cualquier otro valor -> punto gris (falla
         #                   CERRADO: el verde solo se gana con "online")
+        # La etiqueta se fija COMPLETA (texto, color, visible) en cada rama.
+        self.mostrado = mostrado
         self.sin_conexion = (mostrado == SIN_CONEXION)
-        if self.sin_conexion:
+        self.congelada = mostrado in (SIN_CONEXION, SIN_DATOS)
+        if mostrado == SIN_CONEXION:
             self.punto_estado.bgcolor = AMBAR_SIN_CONEXION
-            self.sin_datos_recientes()
-        elif mostrado == "online":
-            self.punto_estado.bgcolor = VERDE_ONLINE
-        else:
+            self.etiqueta_estado.value = "Sin conexión"
+            self.etiqueta_estado.color = AMBAR_SIN_CONEXION
+            self.etiqueta_estado.visible = True
+            self.borrar_valores()
+        elif mostrado == SIN_DATOS:
             self.punto_estado.bgcolor = GRIS_OFFLINE
-        self.etiqueta_estado.visible = self.sin_conexion
+            self.etiqueta_estado.value = "Sin datos"
+            self.etiqueta_estado.color = GRIS_SIN_DATOS
+            self.etiqueta_estado.visible = True
+            self.borrar_valores()
+        else:
+            self.punto_estado.bgcolor = VERDE_ONLINE if mostrado == "online" else GRIS_OFFLINE
+            self.etiqueta_estado.value = ""
+            self.etiqueta_estado.visible = False
         for control in (self.punto_estado, self.etiqueta_estado):
             try:
                 control.update()

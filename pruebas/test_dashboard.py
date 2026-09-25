@@ -133,7 +133,7 @@ def test_alerta_activa_queda_congelada_durante_el_corte(pagina_de_signo):
 def test_vuelve_el_enlace_muestra_el_estado_de_la_cama_y_luego_datos():
     d, _ = _dashboard()
     d.al_estado_cama("cama-09", "offline")
-    d.al_vitales("cama-09", SIGNOS, "jetson-01", _ts())
+    d.al_vitales("cama-09", SIGNOS, "jetson-01", _ts(hace_s=5))
     t = d.tarjetas["cama-09"]
     assert t.punto_estado.bgcolor == GRIS_OFFLINE
     d.al_enlace_edge("jetson-01", False)
@@ -143,6 +143,9 @@ def test_vuelve_el_enlace_muestra_el_estado_de_la_cama_y_luego_datos():
     assert t.etiqueta_estado.visible is False
     d.al_estado_cama("cama-09", "online")
     assert t.punto_estado.bgcolor == VERDE_ONLINE
+    # F1.2: la 1ª vital tras volver el enlace es la re-publicación del bridge
+    # (no cuenta); la siguiente, con ts que avanza, son datos frescos
+    d.al_vitales("cama-09", SIGNOS, "jetson-01", _ts(hace_s=2))
     d.al_vitales("cama-09", SIGNOS, "jetson-01", _ts())  # datos frescos
     assert t.signos["fc"].valor_texto.value == "100"
 
@@ -153,7 +156,7 @@ def test_al_volver_el_enlace_las_vitales_viejas_no_se_pintan(pagina_de_signo):
     # cayó durante el corte, esas vitales son de hace minutos.
     d, alertas = _dashboard()
     d.al_estado_cama("cama-09", "online")
-    d.al_vitales("cama-09", SIGNOS, "jetson-01", _ts())
+    d.al_vitales("cama-09", SIGNOS, "jetson-01", _ts(hace_s=5))
     t = d.tarjetas["cama-09"]
     n_alertas = len(alertas)
     d.al_enlace_edge("jetson-01", False)
